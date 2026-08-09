@@ -1,4 +1,9 @@
-"""Unit tests for fizzbuzz.classify (will FAIL until the bug is fixed)."""
+"""Unit tests for fizzbuzz.classify.
+
+Covers the Issue #1 fix: multiples of 15 must return 'FizzBuzz' rather
+than 'Fizz'. Also guards against regressions in the %3 -> Fizz and
+%5 -> Buzz branches and the plain-number fallback.
+"""
 
 from fizzbuzz import classify
 
@@ -6,10 +11,16 @@ from fizzbuzz import classify
 def main() -> None:
     cases = {
         1: "1",
+        2: "2",
         3: "Fizz",
         5: "Buzz",
-        15: "FizzBuzz",  # bug: currently returns "Fizz"
-        45: "FizzBuzz",  # bug: currently returns "Fizz"
+        9: "Fizz",
+        10: "Buzz",
+        15: "FizzBuzz",
+        30: "FizzBuzz",
+        45: "FizzBuzz",
+        60: "FizzBuzz",
+        75: "FizzBuzz",
     }
     failed = 0
     for n, expected in cases.items():
