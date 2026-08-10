@@ -5,10 +5,16 @@ than 'Fizz'. Also guards against regressions in the %3 -> Fizz and
 %5 -> Buzz branches and the plain-number fallback.
 """
 
-from fizzbuzz import classify, sequence
+import subprocess
+import sys
+
+from fizzbuzz import classify, sequence, csv_line, range_values
 
 
 def main() -> None:
+    failed = 0
+
+    # classify() test cases (Issue #1)
     cases = {
         1: "1",
         2: "2",
@@ -22,7 +28,6 @@ def main() -> None:
         60: "FizzBuzz",
         75: "FizzBuzz",
     }
-    failed = 0
     for n, expected in cases.items():
         got = classify(n)
         status = "ok" if got == expected else "FAIL"
@@ -53,6 +58,88 @@ def main() -> None:
             print(f"FAIL: sequence({bad!r}) did not raise ValueError")
         except ValueError:
             print(f"ok: sequence({bad!r}) raised ValueError")
+
+    # csv_line() test cases
+    csv_cases = [
+        (["1", "2", "Fizz", "4", "Buzz"], "1,2,Fizz,4,Buzz"),
+        (["Buzz", "11", "Fizz", "13", "14", "FizzBuzz"],
+         "Buzz,11,Fizz,13,14,FizzBuzz"),
+        ([], ""),
+        (["FizzBuzz"], "FizzBuzz"),
+        (["1", "2"], "1,2"),
+    ]
+    for values, expected in csv_cases:
+        got = csv_line(list(values))
+        status = "ok" if got == expected else "FAIL"
+        if got != expected:
+            failed += 1
+        print(f"{status}: csv_line({values!r}) = {got!r} (expected {expected!r})")
+
+    # range_values() test cases
+    range_cases = {
+        (1, 5): ["1", "2", "Fizz", "4", "Buzz"],
+        (10, 15): ["Buzz", "11", "Fizz", "13", "14", "FizzBuzz"],
+        (15, 15): ["FizzBuzz"],
+        (1, 1): ["1"],
+    }
+    for (start, end), expected in range_cases.items():
+        got = range_values(start, end)
+        status = "ok" if got == expected else "FAIL"
+        if got != expected:
+            failed += 1
+        print(f"{status}: range_values({start}, {end}) = {got!r} (expected {expected!r})")
+
+    # range_values() must reject bad input
+    for bad in ((5, 1), (1.0, 5), (1, "5")):
+        try:
+            range_values(*bad)
+            failed += 1
+            print(f"FAIL: range_values({bad!r}) did not raise ValueError")
+        except ValueError:
+            print(f"ok: range_values({bad!r}) raised ValueError")
+
+    # subprocess CLI tests
+    def run_cli(*argv):
+        return subprocess.run(
+            [sys.executable, "fizzbuzz.py", *argv],
+            capture_output=True, text=True,
+        )
+
+    cli_cases = [
+        # (argv, expected_stdout, expected_returncode)
+        (["--list", "5"], "1\n2\nFizz\n4\nBuzz\n", 0),
+        (["--list", "5", "--csv"], "1,2,Fizz,4,Buzz\n", 0),
+        (["--csv", "--list", "5"], "1,2,Fizz,4,Buzz\n", 0),
+        (["--range", "10", "15"],
+         "Buzz\n11\nFizz\n13\n14\nFizzBuzz\n", 0),
+        (["--range", "10", "15", "--csv"],
+         "Buzz,11,Fizz,13,14,FizzBuzz\n", 0),
+        (["--csv", "--range", "10", "15"],
+         "Buzz,11,Fizz,13,14,FizzBuzz\n", 0),
+        (["5"], "Buzz\n", 0),
+        (["--csv"], None, 1),
+        (["--csv", "5"], None, 1),
+        (["--csv", "--list"], None, 1),
+        (["--range", "5", "1"], None, 1),
+        (["--list", "abc"], None, 1),
+        (["--list", "0"], None, 1),
+    ]
+    for argv, expected_stdout, expected_rc in cli_cases:
+        result = run_cli(*argv)
+        ok_rc = result.returncode == expected_rc
+        if not ok_rc:
+            failed += 1
+        stdout_ok = True
+        if expected_stdout is not None:
+            stdout_ok = result.stdout == expected_stdout
+            if not stdout_ok:
+                failed += 1
+        status = "ok" if (ok_rc and stdout_ok) else "FAIL"
+        detail = (
+            f"rc={result.returncode}(expected {expected_rc}), "
+            f"stdout={result.stdout!r}, stderr={result.stderr!r}"
+        )
+        print(f"{status}: cli {argv} -> {detail}")
 
     if failed:
         print(f"{failed} test(s) failed.")
