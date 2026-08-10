@@ -22,10 +22,42 @@ def sequence(n: int) -> list[str]:
     return [classify(i) for i in range(1, n + 1)]
 
 
+def range_sequence(start: int, end: int) -> list[str]:
+    """Return the FizzBuzz classification for each value in start..end inclusive.
+
+    Validates that ``start`` and ``end`` are positive integers (``int`` and >= 1)
+    with ``start <= end``, raising ``ValueError`` otherwise.
+    """
+    if type(start) is not int or type(end) is not int:
+        raise ValueError("range_sequence() requires positive integers")
+    if start < 1 or end < 1:
+        raise ValueError("range_sequence() requires positive integers")
+    if start > end:
+        raise ValueError("range_sequence() requires start <= end")
+    return [classify(i) for i in range(start, end + 1)]
+
+
 if __name__ == "__main__":
     import sys
 
-    if sys.argv[1:] and sys.argv[1] == "--list":
+    if sys.argv[1:] and sys.argv[1] == "--range":
+        try:
+            start = int(sys.argv[2])
+            end = int(sys.argv[3])
+        except (IndexError, ValueError):
+            sys.stderr.write(
+                "error: --range requires two positive integers with start <= end\n"
+            )
+            raise SystemExit(1)
+        try:
+            for item in range_sequence(start, end):
+                print(item)
+        except ValueError:
+            sys.stderr.write(
+                "error: --range requires two positive integers with start <= end\n"
+            )
+            raise SystemExit(1)
+    elif sys.argv[1:] and sys.argv[1] == "--list":
         try:
             n = int(sys.argv[2])
         except (IndexError, ValueError):
