@@ -98,4 +98,7 @@ if __name__ == "__main__":
         except ValueError:
             sys.stderr.write("error: requires a positive integer\n")
             raise SystemExit(1)
+        if n < 1:
+            sys.stderr.write("error: requires a positive integer\n")
+            raise SystemExit(1)
         print(classify(n))
