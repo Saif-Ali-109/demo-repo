@@ -3,6 +3,11 @@
 Covers the Issue #1 fix: multiples of 15 must return 'FizzBuzz' rather
 than 'Fizz'. Also guards against regressions in the %3 -> Fizz and
 %5 -> Buzz branches and the plain-number fallback.
+
+Covers the Issue #10 fix: bare-number CLI mode (``python3 fizzbuzz.py <n>``)
+must reject non-positive integers (0 and negatives) with rc=1 and an error
+message, consistent with ``--list`` and ``--range`` modes, while positive
+values still work.
 """
 
 import subprocess
@@ -106,7 +111,7 @@ def main() -> None:
         )
 
     cli_cases = [
-        # (argv, expected_stdout, expected_returncode)
+        # (argv, expected_stdout, expected_returncode[, expected_stderr])
         (["--list", "5"], "1\n2\nFizz\n4\nBuzz\n", 0),
         (["--list", "5", "--csv"], "1,2,Fizz,4,Buzz\n", 0),
         (["--csv", "--list", "5"], "1,2,Fizz,4,Buzz\n", 0),
@@ -123,8 +128,19 @@ def main() -> None:
         (["--range", "5", "1"], None, 1),
         (["--list", "abc"], None, 1),
         (["--list", "0"], None, 1),
+        # Issue #10: bare-number mode must reject non-positive integers
+        (["0"], None, 1, "error: requires a positive integer\n"),
+        (["-1"], None, 1, "error: requires a positive integer\n"),
+        (["-15"], None, 1, "error: requires a positive integer\n"),
+        (["abc"], None, 1, "error: requires a positive integer\n"),
+        (["1"], "1\n", 0),
+        (["15"], "FizzBuzz\n", 0),
     ]
-    for argv, expected_stdout, expected_rc in cli_cases:
+    for item in cli_cases:
+        argv = item[0]
+        expected_stdout = item[1]
+        expected_rc = item[2]
+        expected_stderr = item[3] if len(item) > 3 else None
         result = run_cli(*argv)
         ok_rc = result.returncode == expected_rc
         if not ok_rc:
@@ -134,7 +150,12 @@ def main() -> None:
             stdout_ok = result.stdout == expected_stdout
             if not stdout_ok:
                 failed += 1
-        status = "ok" if (ok_rc and stdout_ok) else "FAIL"
+        stderr_ok = True
+        if expected_stderr is not None:
+            stderr_ok = result.stderr == expected_stderr
+            if not stderr_ok:
+                failed += 1
+        status = "ok" if (ok_rc and stdout_ok and stderr_ok) else "FAIL"
         detail = (
             f"rc={result.returncode}(expected {expected_rc}), "
             f"stdout={result.stdout!r}, stderr={result.stderr!r}"
