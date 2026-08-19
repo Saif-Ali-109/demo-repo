@@ -65,6 +65,14 @@ def main() -> None:
             failed += 1
         print(f"{status}: sequence({n}) = {got!r} (expected {expected!r})")
 
+    # sequence() must place the Bang combinations at the right positions (Issue #17)
+    for n, expected in ((21, "FizzBang"), (35, "BuzzBang"), (105, "FizzBuzzBang")):
+        got = sequence(n)[n - 1]
+        status = "ok" if got == expected else "FAIL"
+        if got != expected:
+            failed += 1
+        print(f"{status}: sequence({n})[-1] = {got!r} (expected {expected!r})")
+
     # sequence() must reject non-positive / non-integer input
     for bad in (0, -3, "5"):
         try:
@@ -96,6 +104,8 @@ def main() -> None:
         (10, 15): ["Buzz", "11", "Fizz", "13", "Bang", "FizzBuzz"],
         (15, 15): ["FizzBuzz"],
         (1, 1): ["1"],
+        (35, 35): ["BuzzBang"],
+        (105, 105): ["FizzBuzzBang"],
     }
     for (start, end), expected in range_cases.items():
         got = range_values(start, end)
@@ -170,6 +180,8 @@ def main() -> None:
         (["15"], "FizzBuzz\n", 0),
         (["7"], "Bang\n", 0),
         (["21"], "FizzBang\n", 0),
+        (["35"], "BuzzBang\n", 0),
+        (["105"], "FizzBuzzBang\n", 0),
     ]
     for item in cli_cases:
         argv = item[0]
