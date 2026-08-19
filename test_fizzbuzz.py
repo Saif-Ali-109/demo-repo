@@ -8,6 +8,10 @@ Covers the Issue #10 fix: bare-number CLI mode (``python3 fizzbuzz.py <n>``)
 must reject non-positive integers (0 and negatives) with rc=1 and an error
 message, consistent with ``--list`` and ``--range`` modes, while positive
 values still work.
+
+Covers the Issue #17 fix: numbers divisible by 7 return 'Bang', with combined
+tokens (FizzBang, BuzzBang, FizzBuzzBang) for numbers divisible by 7 and
+3 and/or 5.
 """
 
 import subprocess
@@ -32,6 +36,12 @@ def main() -> None:
         45: "FizzBuzz",
         60: "FizzBuzz",
         75: "FizzBuzz",
+        # Bang and combinations (Issue #17)
+        7: "Bang",
+        14: "Bang",
+        21: "FizzBang",
+        35: "BuzzBang",
+        105: "FizzBuzzBang",
     }
     for n, expected in cases.items():
         got = classify(n)
@@ -44,8 +54,8 @@ def main() -> None:
     sequence_cases = {
         1: ["1"],
         15: [
-            "1", "2", "Fizz", "4", "Buzz", "Fizz", "7", "8", "Fizz",
-            "Buzz", "11", "Fizz", "13", "14", "FizzBuzz",
+            "1", "2", "Fizz", "4", "Buzz", "Fizz", "Bang", "8", "Fizz",
+            "Buzz", "11", "Fizz", "13", "Bang", "FizzBuzz",
         ],
     }
     for n, expected in sequence_cases.items():
@@ -83,7 +93,7 @@ def main() -> None:
     # range_values() test cases
     range_cases = {
         (1, 5): ["1", "2", "Fizz", "4", "Buzz"],
-        (10, 15): ["Buzz", "11", "Fizz", "13", "14", "FizzBuzz"],
+        (10, 15): ["Buzz", "11", "Fizz", "13", "Bang", "FizzBuzz"],
         (15, 15): ["FizzBuzz"],
         (1, 1): ["1"],
     }
@@ -103,6 +113,29 @@ def main() -> None:
         except ValueError:
             print(f"ok: range_values({bad!r}) raised ValueError")
 
+    # Reference check: classify() over 1..210 must match the full
+    # Fizz/Buzz/Bang token mapping (Issue #17)
+    def reference_classify(n: int) -> str:
+        tokens = ""
+        if n % 3 == 0:
+            tokens += "Fizz"
+        if n % 5 == 0:
+            tokens += "Buzz"
+        if n % 7 == 0:
+            tokens += "Bang"
+        return tokens or str(n)
+
+    reference_failures = 0
+    for n in range(1, 211):
+        expected = reference_classify(n)
+        got = classify(n)
+        if got != expected:
+            reference_failures += 1
+            failed += 1
+            print(f"FAIL: classify({n}) = {got!r} (expected {expected!r})")
+    if reference_failures == 0:
+        print("ok: classify() matches expected Fizz/Buzz/Bang mapping for 1..210")
+
     # subprocess CLI tests
     def run_cli(*argv):
         return subprocess.run(
@@ -116,11 +149,11 @@ def main() -> None:
         (["--list", "5", "--csv"], "1,2,Fizz,4,Buzz\n", 0),
         (["--csv", "--list", "5"], "1,2,Fizz,4,Buzz\n", 0),
         (["--range", "10", "15"],
-         "Buzz\n11\nFizz\n13\n14\nFizzBuzz\n", 0),
+         "Buzz\n11\nFizz\n13\nBang\nFizzBuzz\n", 0),
         (["--range", "10", "15", "--csv"],
-         "Buzz,11,Fizz,13,14,FizzBuzz\n", 0),
+         "Buzz,11,Fizz,13,Bang,FizzBuzz\n", 0),
         (["--csv", "--range", "10", "15"],
-         "Buzz,11,Fizz,13,14,FizzBuzz\n", 0),
+         "Buzz,11,Fizz,13,Bang,FizzBuzz\n", 0),
         (["5"], "Buzz\n", 0),
         (["--csv"], None, 1),
         (["--csv", "5"], None, 1),
@@ -135,6 +168,8 @@ def main() -> None:
         (["abc"], None, 1, "error: requires a positive integer\n"),
         (["1"], "1\n", 0),
         (["15"], "FizzBuzz\n", 0),
+        (["7"], "Bang\n", 0),
+        (["21"], "FizzBang\n", 0),
     ]
     for item in cli_cases:
         argv = item[0]
