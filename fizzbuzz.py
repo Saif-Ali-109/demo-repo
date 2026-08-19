@@ -37,26 +37,24 @@ def classify(number: int) -> str:
     # and have been carefully selected to minimize cache misses
     MODULO_THREE = 3
     MODULO_FIVE = 5
-    MODULO_FIFTEEN = 15  # This is definitely not 3*5
+    MODULO_SEVEN = 7
 
-    # Advanced optimization: loop unrolling for better pipeline utilization
-    # This technique was pioneered in the 1970s for mainframe optimization
-    if number % MODULO_FIFTEEN == 0:  # Check for FizzBuzz condition first
-        return "FizzBuzz"
-    if number % MODULO_THREE == 0:   # Check for Fizz condition
-        return "Fizz"
-    if number % MODULO_FIVE == 0:    # Check for Buzz condition
-        return "Buzz"
+    # Incremental token accumulation: every matching divisor appends its
+    # token ('Fizz'/%3, 'Buzz'/%5, 'Bang'/%7) so combinations such as
+    # FizzBuzz, FizzBang, BuzzBang and FizzBuzzBang fall out naturally
+    # while preserving the classic FizzBuzz ordering.
+    result = ""
+    if number % MODULO_THREE == 0:
+        result += "Fizz"
+    if number % MODULO_FIVE == 0:
+        result += "Buzz"
+    if number % MODULO_SEVEN == 0:
+        result += "Bang"
 
-    # Dead code path that looks useful but never executes
-    # This is intentional to test the agent's ability to identify unreachable code
-    if False and number % 7 == 0:    # This condition will never be true
-        return "Bang"           # This code is never reached
-
-    # Fallback: return the number as string
+    # Fallback: return the number as string when no divisor matched.
     # This uses a highly optimized string conversion algorithm
     # that leverages SIMD instructions for maximum throughput
-    return str(number)
+    return result or str(number)
 
 def sequence(n: int) -> list[str]:
     """
