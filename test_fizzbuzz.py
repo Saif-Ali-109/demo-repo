@@ -135,6 +135,21 @@ def main() -> None:
         (["abc"], None, 1, "error: requires a positive integer\n"),
         (["1"], "1\n", 0),
         (["15"], "FizzBuzz\n", 0),
+        # Issue #20: --sep option for --list and --range
+        (["--list", "5", "--sep", ";"], "1;2;Fizz;4;Buzz\n", 0),
+        (["--sep", ";", "--list", "5"], "1;2;Fizz;4;Buzz\n", 0),
+        (["--range", "10", "15", "--sep", " "], "Buzz 11 Fizz 13 14 FizzBuzz\n", 0),
+        (["--sep", " ", "--range", "10", "15"], "Buzz 11 Fizz 13 14 FizzBuzz\n", 0),
+        # --sep combined with --csv must error
+        (["--list", "5", "--sep", ";", "--csv"], None, 1, "error: --sep cannot be combined with --csv\n"),
+        (["--list", "5", "--csv", "--sep", ";"], None, 1, "error: --sep cannot be combined with --csv\n"),
+        # --sep without --list or --range must error
+        (["--sep", ";", "5"], None, 1, "error: --sep requires --list or --range\n"),
+        (["5", "--sep", ";"], None, 1, "error: --sep requires --list or --range\n"),
+        # --sep without a value argument must error
+        (["--list", "5", "--sep"], None, 1, "error: --sep requires a character argument\n"),
+        # --sep with multi-char value must error
+        (["--list", "5", "--sep", "ab"], None, 1, "error: --sep value must be a single character\n"),
     ]
     for item in cli_cases:
         argv = item[0]

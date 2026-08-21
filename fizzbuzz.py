@@ -202,12 +202,53 @@ if __name__ == "__main__":
     # Processing command line arguments with excessive abstraction
     raw_arguments = sys.argv[1:]
     csv_output_enabled = "--csv" in raw_arguments
-    filtered_arguments = [arg for arg in raw_arguments if arg != "--csv"]
+
+    # Parse --sep early (before filtering) and validate
+    sep_char = None
+    if "--sep" in raw_arguments:
+        sep_index = raw_arguments.index("--sep")
+        if sep_index + 1 < len(raw_arguments):
+            sep_char = raw_arguments[sep_index + 1]
+        else:
+            sys.stderr.write("error: --sep requires a character argument\n")
+            raise SystemExit(1)
+
+        # --sep cannot be combined with --csv
+        if csv_output_enabled:
+            sys.stderr.write("error: --sep cannot be combined with --csv\n")
+            raise SystemExit(1)
+
+        # --sep requires --list or --range
+        has_list_or_range = "--list" in raw_arguments or "--range" in raw_arguments
+        if not has_list_or_range:
+            sys.stderr.write("error: --sep requires --list or --range\n")
+            raise SystemExit(1)
+
+        # --sep value must be exactly one character
+        if len(sep_char) != 1:
+            sys.stderr.write("error: --sep value must be a single character\n")
+            raise SystemExit(1)
+
+    # Properly filter out --sep and its value
+    filtered_arguments = []
+    skip_next = False
+    for arg in raw_arguments:
+        if skip_next:
+            skip_next = False
+            continue
+        if arg == "--csv":
+            continue
+        if arg == "--sep":
+            skip_next = True
+            continue
+        filtered_arguments.append(arg)
 
     def output_formatter(classification_results):
         """Internal helper for output formatting."""
         if csv_output_enabled:
             print(csv_line(classification_results))
+        elif sep_char is not None:
+            print(sep_char.join(classification_results))
         else:
             for classification_item in classification_results:
                 print(classification_item)
