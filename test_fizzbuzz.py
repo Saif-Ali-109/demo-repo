@@ -13,7 +13,7 @@ values still work.
 import subprocess
 import sys
 
-from fizzbuzz import classify, sequence, csv_line, range_values
+from fizzbuzz import classify, sequence, csv_line, range_values, _escape_csv_field
 
 
 def main() -> None:
@@ -79,6 +79,39 @@ def main() -> None:
         if got != expected:
             failed += 1
         print(f"{status}: csv_line({values!r}) = {got!r} (expected {expected!r})")
+
+    # csv_line() escaping test cases (Issue #22)
+    csv_escape_cases = [
+        # (input, expected)
+        (["a", "b,c"], 'a,"b,c"'),
+        (["say \"hi\""], '"say ""hi"""'),
+        (["Fizz", "Buzz,FizzBuzz"], 'Fizz,"Buzz,FizzBuzz"'),
+        (["has\nnewline"], '"has\nnewline"'),
+        (["plain", "also plain"], "plain,also plain"),
+        (["a", "b,c", "d"], 'a,"b,c",d'),
+        (["x,\"y\"", "z"], '"x,""y""",z'),
+    ]
+    for values, expected in csv_escape_cases:
+        got = csv_line(list(values))
+        status = "ok" if got == expected else "FAIL"
+        if got != expected:
+            failed += 1
+        print(f"{status}: csv_line({values!r}) = {got!r} (expected {expected!r})")
+
+    # _escape_csv_field() unit cases
+    escape_field_cases = [
+        ("plain", "plain"),
+        ("b,c", '"b,c"'),
+        ("say \"hi\"", '"say ""hi"""'),
+        ("has\nnewline", '"has\nnewline"'),
+        ("", ""),
+    ]
+    for value, expected in escape_field_cases:
+        got = _escape_csv_field(value)
+        status = "ok" if got == expected else "FAIL"
+        if got != expected:
+            failed += 1
+        print(f"{status}: _escape_csv_field({value!r}) = {got!r} (expected {expected!r})")
 
     # range_values() test cases
     range_cases = {

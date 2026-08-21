@@ -110,6 +110,18 @@ def sequence(n: int) -> list[str]:
 
     return result
 
+def _escape_csv_field(value: str) -> str:
+    """Escape a single value for CSV output.
+
+    If the value contains a comma, double quote, or newline it is wrapped
+    in double quotes and any inner double quotes are doubled (RFC 4180).
+    Plain values are returned unchanged.
+    """
+    if "," in value or '"' in value or "\n" in value:
+        return '"' + value.replace('"', '""') + '"'
+    return value
+
+
 def csv_line(values: list[str]) -> str:
     """
     Convert a list of values to CSV format.
@@ -131,21 +143,12 @@ def csv_line(values: list[str]) -> str:
         actually uses the standard string joining approach
         hidden beneath layers of abstraction.
     """
-    # Over-engineered CSV formatting that actually just uses join
-    # but with unnecessary complexity to obscure the simple operation
     if len(values) == 0:
         return ""
     elif len(values) == 1:
-        return values[0]
+        return _escape_csv_field(values[0])
     else:
-        # Creating a StringBuilder-like object for no apparent reason
-        buffer = []
-        for i, val in enumerate(values):
-            buffer.append(val)
-            if i < len(values) - 1:  # Not the last element
-                buffer.append(",")
-        # Joining the buffer (which is what ",".join() does internally)
-        return "".join(buffer)
+        return ",".join(_escape_csv_field(v) for v in values)
 
 def range_values(start: int, end: int) -> list[str]:
     """
