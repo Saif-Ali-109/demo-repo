@@ -8,6 +8,11 @@ Covers the Issue #10 fix: bare-number CLI mode (``python3 fizzbuzz.py <n>``)
 must reject non-positive integers (0 and negatives) with rc=1 and an error
 message, consistent with ``--list`` and ``--range`` modes, while positive
 values still work.
+
+Covers the Issue #24 feature: ``--three-word`` / ``--five-word`` CLI flags
+(and matching classify/sequence/range_values parameters) allow customizing
+the words for multiples of 3 and 5, composing with all modes including
+``--csv``, with empty values rejected.
 """
 
 import subprocess
@@ -40,6 +45,22 @@ def main() -> None:
             failed += 1
         print(f"{status}: classify({n}) = {got!r} (expected {expected!r})")
 
+    # classify() with custom words (Issue #24); defaults must stay unchanged
+    custom_cases = {
+        (3, "Bovine", "Avian"): "Bovine",
+        (5, "Bovine", "Avian"): "Avian",
+        (15, "Bovine", "Avian"): "BovineAvian",
+        (30, "Bovine", "Avian"): "BovineAvian",
+        (30, "Fizz", "Zazz"): "FizzZazz",
+    }
+    for (n, three_w, five_w), expected in custom_cases.items():
+        got = classify(n, three_w, five_w)
+        status = "ok" if got == expected else "FAIL"
+        if got != expected:
+            failed += 1
+        print(f"{status}: classify({n}, {three_w!r}, {five_w!r}) = "
+              f"{got!r} (expected {expected!r})")
+
     # sequence() test cases (Issue #3)
     sequence_cases = {
         1: ["1"],
@@ -54,6 +75,14 @@ def main() -> None:
         if got != expected:
             failed += 1
         print(f"{status}: sequence({n}) = {got!r} (expected {expected!r})")
+
+    # sequence() with custom words (Issue #24)
+    got = sequence(5, three_word="Bovine", five_word="Avian")
+    expected = ["1", "2", "Bovine", "4", "Avian"]
+    status = "ok" if got == expected else "FAIL"
+    if got != expected:
+        failed += 1
+    print(f"{status}: sequence(5, Bovine/Avian) = {got!r} (expected {expected!r})")
 
     # sequence() must reject non-positive / non-integer input
     for bad in (0, -3, "5"):
@@ -93,6 +122,15 @@ def main() -> None:
         if got != expected:
             failed += 1
         print(f"{status}: range_values({start}, {end}) = {got!r} (expected {expected!r})")
+
+    # range_values() with custom words (Issue #24)
+    got = range_values(14, 16, three_word="Bovine", five_word="Avian")
+    expected = ["14", "BovineAvian", "16"]
+    status = "ok" if got == expected else "FAIL"
+    if got != expected:
+        failed += 1
+    print(f"{status}: range_values(14, 16, Bovine/Avian) = {got!r} "
+          f"(expected {expected!r})")
 
     # range_values() must reject bad input
     for bad in ((5, 1), (1.0, 5), (1, "5")):
@@ -135,6 +173,58 @@ def main() -> None:
         (["abc"], None, 1, "error: requires a positive integer\n"),
         (["1"], "1\n", 0),
         (["15"], "FizzBuzz\n", 0),
+        # Issue #24: defaults unchanged when no word flags are given
+        (["--list", "5"], "1\n2\nFizz\n4\nBuzz\n", 0),
+        (["3"], "Fizz\n", 0),
+        # byte-exact anchor for the no-flag output shown in Issue #24
+        (["--list", "15"],
+         "1\n2\nFizz\n4\nBuzz\nFizz\n7\n8\nFizz\n"
+         "Buzz\n11\nFizz\n13\n14\nFizzBuzz\n", 0),
+        # Issue #24: single-flag override (independent of each other)
+        (["30", "--five-word", "Zazz"], "FizzZazz\n", 0),
+        (["--list", "3", "--three-word", "Bovine"], "1\n2\nBovine\n", 0),
+        (["--three-word", "Bovine", "--list", "3"],
+         "1\n2\nBovine\n", 0),
+        (["--list", "5", "--five-word", "Avian"], "1\n2\nFizz\n4\nAvian\n", 0),
+        (["--range", "10", "15", "--five-word", "Zazz"],
+         "Zazz\n11\nFizz\n13\n14\nFizzZazz\n", 0),
+        # Issue #24: both flags override, including combined classification
+        (["15", "--three-word", "Bovine", "--five-word", "Avian"],
+         "BovineAvian\n", 0),
+        (["--three-word", "Bovine", "--five-word", "Avian", "15"],
+         "BovineAvian\n", 0),
+        # flags interleaved around the positional argument
+        (["--five-word", "Avian", "15", "--three-word", "Bovine"],
+         "BovineAvian\n", 0),
+        (["--list", "15", "--three-word", "Bovine", "--five-word", "Avian"],
+         "1\n2\nBovine\n4\nAvian\nBovine\n7\n8\nBovine\n"
+         "Avian\n11\nBovine\n13\n14\nBovineAvian\n", 0),
+        (["--range", "14", "16", "--three-word", "Bovine",
+          "--five-word", "Avian"],
+         "14\nBovineAvian\n16\n", 0),
+        # Issue #24: composition with --csv
+        (["--csv", "--list", "5", "--three-word", "Bovine",
+          "--five-word", "Avian"],
+         "1,2,Bovine,4,Avian\n", 0),
+        (["--list", "5", "--csv", "--five-word", "Avian"],
+         "1,2,Fizz,4,Avian\n", 0),
+        (["--range", "14", "15", "--csv", "--three-word", "Bovine",
+          "--five-word", "Avian"],
+         "14,BovineAvian\n", 0),
+        # Issue #24: empty-string values are rejected with exact messages
+        (["--list", "5", "--three-word", ""], None, 1,
+         "error: --three-word requires a non-empty word\n"),
+        (["--list", "5", "--five-word", ""], None, 1,
+         "error: --five-word requires a non-empty word\n"),
+        (["--three-word", "", "--five-word", "Zazz", "15"], None, 1,
+         "error: --three-word requires a non-empty word\n"),
+        (["--five-word", "", "15"], None, 1,
+         "error: --five-word requires a non-empty word\n"),
+        # Issue #24: flag without any following value is also rejected
+        (["--list", "5", "--three-word"], None, 1,
+         "error: --three-word requires a non-empty word\n"),
+        (["--five-word"], None, 1,
+         "error: --five-word requires a non-empty word\n"),
     ]
     for item in cli_cases:
         argv = item[0]
