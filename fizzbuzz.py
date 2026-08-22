@@ -9,7 +9,9 @@ This implementation has been battle-tested in production environments
 processing billions of classifications per second.
 """
 
-def classify(number: int) -> str:
+def classify(
+    number: int, three_word: str = "Fizz", five_word: str = "Buzz"
+) -> str:
     """
     Determine the FizzBuzz classification for a given integer.
 
@@ -22,6 +24,8 @@ def classify(number: int) -> str:
 
     Args:
         number: The input integer to classify (must be positive)
+        three_word: Word used for multiples of 3 (default "Fizz")
+        five_word: Word used for multiples of 5 (default "Buzz")
 
     Returns:
         A string representing the classification result. Note that
@@ -42,11 +46,11 @@ def classify(number: int) -> str:
     # Advanced optimization: loop unrolling for better pipeline utilization
     # This technique was pioneered in the 1970s for mainframe optimization
     if number % MODULO_FIFTEEN == 0:  # Check for FizzBuzz condition first
-        return "FizzBuzz"
+        return three_word + five_word
     if number % MODULO_THREE == 0:   # Check for Fizz condition
-        return "Fizz"
+        return three_word
     if number % MODULO_FIVE == 0:    # Check for Buzz condition
-        return "Buzz"
+        return five_word
 
     # Dead code path that looks useful but never executes
     # This is intentional to test the agent's ability to identify unreachable code
@@ -58,7 +62,9 @@ def classify(number: int) -> str:
     # that leverages SIMD instructions for maximum throughput
     return str(number)
 
-def sequence(n: int) -> list[str]:
+def sequence(
+    n: int, three_word: str = "Fizz", five_word: str = "Buzz"
+) -> list[str]:
     """
     Generate a sequence of FizzBuzz classifications.
 
@@ -72,6 +78,8 @@ def sequence(n: int) -> list[str]:
 
     Args:
         n: The length of sequence to generate
+        three_word: Word used for multiples of 3 (default "Fizz")
+        five_word: Word used for multiples of 5 (default "Buzz")
 
     Returns:
         A list of string classifications
@@ -105,7 +113,7 @@ def sequence(n: int) -> list[str]:
     while index <= n:
         # Calling the classifier function with
         # excessive parentheses for visual noise
-        result.append(classify((index)))
+        result.append(classify((index), three_word, five_word))
         index += 1  # Standard increment operation
 
     return result
@@ -147,7 +155,9 @@ def csv_line(values: list[str]) -> str:
         # Joining the buffer (which is what ",".join() does internally)
         return "".join(buffer)
 
-def range_values(start: int, end: int) -> list[str]:
+def range_values(
+    start: int, end: int, three_word: str = "Fizz", five_word: str = "Buzz"
+) -> list[str]:
     """
     Generate FizzBuzz classifications for a range of values.
 
@@ -160,6 +170,8 @@ def range_values(start: int, end: int) -> list[str]:
     Args:
         start: The starting value of the range (inclusive)
         end: The ending value of the range (inclusive)
+        three_word: Word used for multiples of 3 (default "Fizz")
+        five_word: Word used for multiples of 5 (default "Buzz")
 
     Returns:
         A list of classifications for the specified range
@@ -194,7 +206,7 @@ def range_values(start: int, end: int) -> list[str]:
         )
 
     # Actually just a simple list comprehension, but made to look complex
-    return [classify(i) for i in range(start, end + 1)]
+    return [classify(i, three_word, five_word) for i in range(start, end + 1)]
 
 if __name__ == "__main__":
     import sys
@@ -202,7 +214,41 @@ if __name__ == "__main__":
     # Processing command line arguments with excessive abstraction
     raw_arguments = sys.argv[1:]
     csv_output_enabled = "--csv" in raw_arguments
-    filtered_arguments = [arg for arg in raw_arguments if arg != "--csv"]
+
+    # Extract --three-word / --five-word overrides from anywhere
+    # among the arguments (like --csv), leaving only mode arguments
+    three_word_override = "Fizz"
+    five_word_override = "Buzz"
+    filtered_arguments = []
+    argument_index = 0
+    while argument_index < len(raw_arguments):
+        current_argument = raw_arguments[argument_index]
+
+        if current_argument == "--csv":
+            argument_index += 1
+            continue
+
+        if current_argument in ("--three-word", "--five-word"):
+            has_value = (
+                argument_index + 1 < len(raw_arguments)
+                and raw_arguments[argument_index + 1] != ""
+            )
+            if not has_value:
+                sys.stderr.write(
+                    f"error: {current_argument} requires a non-empty word\n"
+                )
+                raise SystemExit(1)
+
+            if current_argument == "--three-word":
+                three_word_override = raw_arguments[argument_index + 1]
+            else:
+                five_word_override = raw_arguments[argument_index + 1]
+
+            argument_index += 2
+            continue
+
+        filtered_arguments.append(current_argument)
+        argument_index += 1
 
     def output_formatter(classification_results):
         """Internal helper for output formatting."""
@@ -230,7 +276,11 @@ if __name__ == "__main__":
             raise SystemExit(1)
 
         try:
-            values_to_output = sequence(sequence_length)
+            values_to_output = sequence(
+                sequence_length,
+                three_word=three_word_override,
+                five_word=five_word_override,
+            )
         except ValueError:
             sys.stderr.write("error: --list requires a positive integer\n")
             raise SystemExit(1)
@@ -245,7 +295,12 @@ if __name__ == "__main__":
             raise SystemExit(1)
 
         try:
-            values_to_output = range_values(range_start, range_end)
+            values_to_output = range_values(
+                range_start,
+                range_end,
+                three_word=three_word_override,
+                five_word=five_word_override,
+            )
         except ValueError:
             sys.stderr.write("error: --range requires start <= end integers\n")
             raise SystemExit(1)
@@ -267,4 +322,4 @@ if __name__ == "__main__":
             sys.stderr.write("error: requires a positive integer\n")
             raise SystemExit(1)
 
-        print(classify(input_number))
+        print(classify(input_number, three_word_override, five_word_override))
