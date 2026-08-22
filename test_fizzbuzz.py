@@ -176,6 +176,10 @@ def main() -> None:
         # Issue #24: defaults unchanged when no word flags are given
         (["--list", "5"], "1\n2\nFizz\n4\nBuzz\n", 0),
         (["3"], "Fizz\n", 0),
+        # byte-exact anchor for the no-flag output shown in Issue #24
+        (["--list", "15"],
+         "1\n2\nFizz\n4\nBuzz\nFizz\n7\n8\nFizz\n"
+         "Buzz\n11\nFizz\n13\n14\nFizzBuzz\n", 0),
         # Issue #24: single-flag override (independent of each other)
         (["30", "--five-word", "Zazz"], "FizzZazz\n", 0),
         (["--list", "3", "--three-word", "Bovine"], "1\n2\nBovine\n", 0),
@@ -188,6 +192,9 @@ def main() -> None:
         (["15", "--three-word", "Bovine", "--five-word", "Avian"],
          "BovineAvian\n", 0),
         (["--three-word", "Bovine", "--five-word", "Avian", "15"],
+         "BovineAvian\n", 0),
+        # flags interleaved around the positional argument
+        (["--five-word", "Avian", "15", "--three-word", "Bovine"],
          "BovineAvian\n", 0),
         (["--list", "15", "--three-word", "Bovine", "--five-word", "Avian"],
          "1\n2\nBovine\n4\nAvian\nBovine\n7\n8\nBovine\n"
