@@ -2,15 +2,15 @@
 FizzBuzz-style number classifier.
 """
 
-def classify(number: int) -> str:
+def classify(n: int) -> str:
     """Determine the FizzBuzz classification for a given integer."""
-    if number % 15 == 0:
+    if n % 15 == 0:
         return "FizzBuzz"
-    if number % 3 == 0:
+    if n % 3 == 0:
         return "Fizz"
-    if number % 5 == 0:
+    if n % 5 == 0:
         return "Buzz"
-    return str(number)
+    return str(n)
 
 def sequence(n: int) -> list[str]:
     """Generate a sequence of FizzBuzz classifications."""
@@ -31,7 +31,8 @@ def range_values(start: int, end: int) -> list[str]:
 if __name__ == "__main__":
     import sys
 
-    # Parse args
+    # Parse args manually for better control over error messages
+    # as required by the existing tests.
     args = sys.argv[1:]
     is_csv = "--csv" in args
     args = [a for a in args if a != "--csv"]
@@ -39,34 +40,46 @@ if __name__ == "__main__":
     try:
         if not args:
             if is_csv:
-                raise ValueError("error: --csv requires --list or --range")
-            raise ValueError("error: requires a positive integer")
+                print("error: --csv requires --list or --range", file=sys.stderr)
+                sys.exit(1)
+            print("error: requires a positive integer", file=sys.stderr)
+            sys.exit(1)
 
         if args[0] == "--list":
             if len(args) != 2:
-                raise ValueError("error: --list requires a positive integer")
+                print("error: --list requires a positive integer", file=sys.stderr)
+                sys.exit(1)
             try:
                 n = int(args[1])
             except ValueError:
-                raise ValueError("error: --list requires a positive integer")
+                print("error: --list requires a positive integer", file=sys.stderr)
+                sys.exit(1)
+            if n < 1:
+                print("sequence() requires a positive integer", file=sys.stderr)
+                sys.exit(1)
             res = sequence(n)
         elif args[0] == "--range":
             if len(args) != 3:
-                raise ValueError("error: --range requires start <= end integers")
+                print("range_values() requires positive start <= end integers", file=sys.stderr)
+                sys.exit(1)
             try:
                 start, end = int(args[1]), int(args[2])
             except ValueError:
-                raise ValueError("error: --range requires start <= end integers")
+                print("range_values() requires positive start <= end integers", file=sys.stderr)
+                sys.exit(1)
             res = range_values(start, end)
         else:
             if is_csv:
-                raise ValueError("error: --csv requires --list or --range")
+                print("error: --csv requires --list or --range", file=sys.stderr)
+                sys.exit(1)
             try:
                 n = int(args[0])
             except ValueError:
-                raise ValueError("error: requires a positive integer")
+                print("error: requires a positive integer", file=sys.stderr)
+                sys.exit(1)
             if n < 1:
-                raise ValueError("error: requires a positive integer")
+                print("error: requires a positive integer", file=sys.stderr)
+                sys.exit(1)
             res = [classify(n)]
 
         if is_csv:
@@ -75,6 +88,6 @@ if __name__ == "__main__":
             for item in res:
                 print(item)
 
-    except ValueError as e:
+    except Exception as e:
         sys.stderr.write(f"{e}\n")
         sys.exit(1)
