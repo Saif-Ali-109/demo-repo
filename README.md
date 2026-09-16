@@ -24,3 +24,7 @@ trailing comma or spaces, e.g. `1,2,Fizz,4,Buzz`. Works with `--range` too:
 `python3 fizzbuzz.py --range 10 15 --csv` prints `Buzz,11,Fizz,13,14,FizzBuzz`.
 The `--csv` flag may appear anywhere in the argument list and requires
 either `--list` or `--range`.
+
+## Self-Healer demo
+
+This branch intentionally triggers the failing `lint` job (biome check on src/widget.js).
