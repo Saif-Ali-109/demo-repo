@@ -28,3 +28,4 @@ either `--list` or `--range`.
 ## Self-Healer demo
 
 This branch intentionally triggers the failing `lint` job (biome check on src/widget.js).
+
