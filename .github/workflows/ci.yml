@@ -20,7 +20,7 @@ jobs:
       - name: biome check
         run: |
           echo "biome check output:"
-          npx --yes @biomejs/biome check --formatter-errors-as-errors .
+          npx --yes @biomejs/biome ci .
 
   # Scenario 2 — deterministic flaky failure → Self-Healer rerun path (≤3 reruns).
   # Always fails so the rerun machinery is exercised on every run; the agent
