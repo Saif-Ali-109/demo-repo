@@ -1,0 +1,43 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  # Scenario 1 — deterministic lint/format failure → Self-Healer auto-fix path.
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: biome check
+        run: |
+          echo "biome check output:"
+          npx --yes biome check .
+
+  # Scenario 2 — ~40% flaky failure → Self-Healer rerun path (up to 3 reruns).
+  flaky:
+    runs-on: ubuntu-latest
+    steps:
+      - name: flaky test
+        run: |
+          if [ $(((RANDOM % 10))) -lt 4 ]; then
+            echo "flaky: intermittent race condition detected in order service"
+            echo "Error: test timeout exceeded after 30000ms"
+            exit 1
+          fi
+          echo "flaky job passed this time"
+
+  # Scenario 3 — deterministic unknown failure → Self-Healer escalation path.
+  # NOTE: no lint/format/infra keywords on purpose → no_pattern_match escalation.
+  unknown:
+    runs-on: ubuntu-latest
+    steps:
+      - name: service check
+        run: |
+          echo "demo error: product cache miss for sku-4471 at warehouse"
+          exit 1

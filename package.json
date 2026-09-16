@@ -1,0 +1,9 @@
+{
+  "name": "demo-repo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Demo repo for the Self-Healer CI agent (lint fix / flaky rerun / escalation scenarios).",
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.10"
+  }
+}
