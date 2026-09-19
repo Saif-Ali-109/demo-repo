@@ -44,3 +44,17 @@ jobs:
         run: |
           echo "demo error: product cache miss for sku-4471 at warehouse"
           exit 1
+
+  # Scenario 4 — deterministic missing-import bug → Self-Healer import-fix
+  # path. src/main.mjs calls a widget-rendering helper without importing it
+  # from src/renderer.mjs, so node exits 1; the agent adds the missing
+  # import and re-runs the step successfully.
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: run main
+        run: node src/main.mjs
