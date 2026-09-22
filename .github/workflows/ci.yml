@@ -6,10 +6,6 @@ on:
   pull_request:
 
 jobs:
-  # Scenario 1 — deterministic lint/format failure → Self-Healer auto-fix path.
-  # `var` + double quotes + missing semicolons in src/widget.js violate biome
-  # (single-quote style). --formatter-errors-as-errors makes the step exit 1
-  # so the run fails and self-healer-notify reports it.
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -18,29 +14,14 @@ jobs:
         with:
           node-version: 22
       - name: biome check
-        run: |
-          echo "biome check output:"
-          npx --yes @biomejs/biome ci .
+        run: npx --yes @biomejs/biome ci .
 
-  # Scenario 2 — deterministic flaky failure → Self-Healer rerun path (≤3 reruns).
-  # Always fails so the rerun machinery is exercised on every run; the agent
-  # reruns the job, posts "passed on rerun N/3" or escalates "flaky persisted".
-  flaky:
+  test:
     runs-on: ubuntu-latest
     steps:
-      - name: flaky test
-        run: |
-          echo "flaky: intermittent race condition detected in order service"
-          echo "Error: test timeout exceeded after 30000ms"
-          exit 1
-
-  # Scenario 3 — deterministic unknown failure → Self-Healer escalation path.
-  # NOTE: no lint/format/infra keywords on purpose → no_pattern_match escalation
-  # (or critical_branch on main).
-  unknown:
-    runs-on: ubuntu-latest
-    steps:
-      - name: service check
-        run: |
-          echo "demo error: product cache miss for sku-4471 at warehouse"
-          exit 1
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: npm test
+        run: npm test
